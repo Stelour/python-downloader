@@ -1,11 +1,11 @@
 # Python Downloader
 
-Небольшой CLI-скачиватель для Spotify и YouTube.
+Небольшой CLI-скрипт для установки медиа из Spotify или YouTube.
 Spotify-ссылки (`track`, `album`, `playlist`) ищутся через `yt-dlp`.
 
 ## Что умеет
 
-- скачивать Spotify и YouTube
+- скачивать со Spotify или YouTube
 - автоматически подбирать cookies браузера без ручной настройки
 - после каждой аудиозагрузки предлагать ручное редактирование метаданных
 
