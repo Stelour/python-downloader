@@ -1,28 +1,54 @@
 # Python Downloader
 
-Небольшой CLI-скрипт для загрузки музыки по ссылкам Spotify
-(`track`, `album`, `playlist`) через `yt-dlp`, а также для скачивания
-аудио и видео с YouTube.
+Небольшой CLI-скачиватель для Spotify и YouTube.
+Spotify-ссылки (`track`, `album`, `playlist`) ищутся через `yt-dlp`.
+
+## Что умеет
+
+- скачивать Spotify и YouTube
+- автоматически подбирать cookies браузера без ручной настройки
+- после каждой аудиозагрузки предлагать ручное редактирование метаданных
 
 ## Установка
 
+Нужны:
+
+- `ffmpeg`
+- `node`
+
+Установи зависимости:
+
 ```bash
-pip install spotipy yt-dlp mutagen python-dotenv
+pip install spotipy yt-dlp yt-dlp-ejs mutagen python-dotenv secretstorage pillow
 ```
 
-На https://developer.spotify.com/dashboard, нужно создать приложение и данные оттуда вставить в `.env`:
+Для Spotify создай приложение на https://developer.spotify.com/dashboard и
+заполнить `.env` по примеру из `env.example`:
 
 ```env
 SPOTIFY_CLIENT_ID=your_client_id
 SPOTIFY_CLIENT_SECRET=your_client_secret
 ```
 
-Пример уже есть в `env.example`.
-
-Так же нужна предварительная установка утилиты ffmpeg.
-
 ## Запуск
 
 ```bash
 python main.py
 ```
+
+## Использование
+
+1. При старте выбрать папку загрузки.
+2. Включить или выключить ручное редактирование метаданных после аудиозагрузки.
+3. Выбрать Spotify или YouTube.
+4. Вставить ссылку.
+
+Если ручное редактирование включено, после каждой аудиозагрузки можно вручную
+задать:
+
+- title
+- artist
+- album
+- year
+- track number
+- путь до своей обложки
