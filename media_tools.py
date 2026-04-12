@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import platform
 import re
@@ -230,6 +231,17 @@ def build_info_command(url):
     return add_common_ytdlp_args(command, print_path=False)
 
 
+def build_search_command(query):
+    command = [
+        sys.executable,
+        "-m",
+        "yt_dlp",
+        f"ytsearch8:{query}",
+        "--dump-single-json",
+    ]
+    return add_common_ytdlp_args(command, print_path=False)
+
+
 def run_command(command):
     return subprocess.run(command, capture_output=True, text=True)
 
@@ -358,3 +370,125 @@ def get_youtube_meta(url):
         "cover_path": "",
     }
     return meta, used_cookies, result
+
+
+def normalize_text(text):
+    return re.sub(r"[^a-z0-9]+", " ", str(text).lower()).strip()
+
+
+def contains_any(text, terms):
+    return any(term in text for term in terms)
+
+
+def is_hard_negative_candidate(entry):
+    combined = normalize_text(
+        f"{entry.get('title', '')} {entry.get('uploader', '')} {entry.get('channel', '')}"
+    )
+    hard_negative_terms = (
+        "live",
+        "concert",
+        "performance",
+        "acoustic",
+        "session",
+        "clip",
+        "official video",
+        "music video",
+        "video oficial",
+        "visualizer",
+        "recorded live",
+        "on tour",
+    )
+    return contains_any(combined, hard_negative_terms)
+
+
+def score_search_candidate(entry, meta):
+    title = normalize_text(entry.get("title", ""))
+    uploader = normalize_text(entry.get("uploader", ""))
+    channel = normalize_text(entry.get("channel", ""))
+    album = normalize_text(meta.get("album", ""))
+    artist = normalize_text(meta.get("artists", ""))
+    song = normalize_text(meta.get("title", ""))
+
+    score = 0
+
+    if song and song in title:
+        score += 45
+    if artist and (artist in title or artist in uploader or artist in channel):
+        score += 25
+    if album and album in title:
+        score += 10
+
+    target_duration = int(meta.get("duration_sec") or 0)
+    candidate_duration = int(entry.get("duration") or 0)
+    if target_duration and candidate_duration:
+        diff = abs(target_duration - candidate_duration)
+        if diff <= 3:
+            score += 30
+        elif diff <= 8:
+            score += 20
+        elif diff <= 15:
+            score += 10
+        elif diff >= 45:
+            score -= 30
+
+    positive_terms = (
+        "official audio",
+        "audio",
+        "topic",
+        "provided to youtube",
+        "auto generated",
+        "audio only",
+    )
+    soft_negative_terms = (
+        "lyrics",
+        "lyric video",
+        "remix",
+        "sped up",
+        "slowed",
+        "nightcore",
+        "cover",
+        "karaoke",
+        "fan cam",
+    )
+    combined = f"{title} {uploader} {channel}".strip()
+
+    for term in positive_terms:
+        if term in combined:
+            score += 12
+
+    if is_hard_negative_candidate(entry):
+        score -= 120
+
+    if contains_any(combined, soft_negative_terms):
+        score -= 35
+
+    return score
+
+
+def find_best_youtube_match(meta):
+    query = f"{meta.get('artists', '')} {meta.get('title', '')} {meta.get('album', '')} audio".strip()
+    if not query:
+        return "", "", ""
+
+    result, used_cookies = run_with_cookie_fallback(build_search_command(query))
+    if result.returncode != 0 or not result.stdout.strip():
+        return "", used_cookies, ""
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return "", used_cookies, ""
+
+    entries = data.get("entries") or []
+    if not entries:
+        return "", used_cookies, ""
+
+    safe_entries = [entry for entry in entries if not is_hard_negative_candidate(entry)]
+    candidate_pool = safe_entries or entries
+    scored_entries = sorted(candidate_pool, key=lambda entry: score_search_candidate(entry, meta), reverse=True)
+    best_entry = scored_entries[0]
+    best_url = best_entry.get("webpage_url") or ""
+    if not best_url and best_entry.get("id"):
+        best_url = f"https://www.youtube.com/watch?v={best_entry['id']}"
+
+    return best_url, used_cookies, best_entry.get("title", "")

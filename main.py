@@ -15,6 +15,7 @@ from media_tools import (
     build_video_command,
     extract_path_from_stdout,
     finalize_audio_file,
+    find_best_youtube_match,
     find_downloaded_audio,
     get_youtube_meta,
     run_with_cookie_fallback,
@@ -70,6 +71,7 @@ def make_spotify_meta(track, album=None):
         "album": album_data.get("name", ""),
         "year": (album_data.get("release_date") or "")[:4],
         "track_number": int(track.get("track_number") or 0),
+        "duration_sec": int((track.get("duration_ms") or 0) / 1000),
         "cover_url": images[0]["url"] if images else "",
         "cover_path": "",
     }
@@ -128,8 +130,13 @@ def download_spotify(sp, output_dir, fmt, bitrate, manual_metadata):
         label = f"{meta['artists']} - {meta['title']}"
         print(f"[{index}/{total}] {label}")
         safe_name = sanitize_filename(label)
+        search_target, search_cookies, match_title = find_best_youtube_match(meta)
+        if search_cookies:
+            print(f"  Search used cookies: {search_cookies}")
+        if match_title:
+            print(f"  Match: {match_title}")
         command = build_audio_command(
-            target=f"ytsearch1:{label}",
+            target=search_target or f"ytsearch1:{label}",
             output_template=output_dir / f"{safe_name}.%(ext)s",
             fmt=fmt,
             bitrate=bitrate,
