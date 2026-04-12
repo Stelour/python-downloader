@@ -3,26 +3,24 @@
 Небольшой CLI-скрипт для установки медиа из Spotify или YouTube.
 Spotify-ссылки (`track`, `album`, `playlist`) ищутся через `yt-dlp`.
 
-## Что умеет
+## Возможности
 
-- скачивать со Spotify или YouTube
-- автоматически подбирать cookies браузера без ручной настройки
-- после каждой аудиозагрузки предлагать ручное редактирование метаданных
+- скачивать медиа со Spotify или YouTube
+- после каждой аудиозагрузки ручное редактирование метаданных
 
 ## Установка
 
-Нужны:
+Отдельно нужно установить:
 
 - `ffmpeg`
-- `node`
 
-Установи зависимости:
+Зависимости:
 
 ```bash
 pip install spotipy yt-dlp yt-dlp-ejs mutagen python-dotenv secretstorage pillow
 ```
 
-Для Spotify создай приложение на https://developer.spotify.com/dashboard и
+Для Spotify нужно создать приложение на https://developer.spotify.com/dashboard и
 заполнить `.env` по примеру из `env.example`:
 
 ```env
